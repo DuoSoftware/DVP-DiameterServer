@@ -51,7 +51,7 @@ module.exports = {
         "type" : "HOST_TYPE",
         "vdomain": "LB_FRONTEND",
         "domain": "HOST_NAME",
-        "port": "HOST_BILLINGSERVICE_PORT",
+        "port": "HOST_DIAMETERSERVER_PORT",
         "version": "HOST_VERSION",
         "reschedulefreqency": "BILLING_SCHEDULE_FREQUENCY",
         "rescheduletries": "BILLING_SCHEDULE_TRIES",
