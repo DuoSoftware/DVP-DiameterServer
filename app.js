@@ -12,7 +12,7 @@ var ratings = require("./ratings");
 var billing = require("./scheduler");
 var diameter = require("./diameter");
 
-var server = restify.createServer({
+/*var server = restify.createServer({
   name: "DVP Billing Service"
 });
 
@@ -25,7 +25,7 @@ restify.CORS.ALLOW_HEADERS.push('authorization');
 server.use(restify.CORS());
 server.use(restify.fullResponse());
 
-server.use(jwt({secret: secret.Secret}));
+server.use(jwt({secret: secret.Secret}));*/
 
 //var msg = require('dvp-common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
 
@@ -33,15 +33,11 @@ server.use(jwt({secret: secret.Secret}));
 //var token = format("Bearer {0}",config.Services.accessToken);
 //////////////////////////////Cloud API/////////////////////////////////////////////////////
 
-server.post('/DVP/API/:version/Billing/updateRatings',authorization({resource:"billing", action:"write"}), ratings.updateRatings);
+//server.post('/DVP/API/:version/Billing/updateRatings',authorization({resource:"billing", action:"write"}), ratings.updateRatings);
 
+diameter.init();
+logger.info("DVP-DiameterServer.main Server Started");
 
-server.listen(port, function () {
-
-  diameter.init();
-  logger.info("DVP-DiameterServer.main Server %s listening at %s", server.name, server.url);
-
-});
 
 
 
