@@ -26,6 +26,7 @@ var optionsAsTcpServer = {
 
 var server = diameter.createServer(optionsAsTcpServer, function(socket) {
 
+    socket.setNoDelay(true);
     socket.setKeepAlive(true,5000);
 
     console.log("Client connected through TCP : " +  socket.remoteAddress +':'+ socket.remotePort);
