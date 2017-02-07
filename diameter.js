@@ -38,7 +38,6 @@ var server = diameter.createServer(optionsAsTcpServer, function(socket) {
     });
 });
 
-server.timeout = 5000;
 
 
 function processDiameterMessages(event,response) {
