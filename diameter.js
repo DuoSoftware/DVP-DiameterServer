@@ -31,6 +31,11 @@ var server = diameter.createServer(optionsAsTcpServer, function(socket) {
 
     console.log("Client connected through TCP : " +  socket.remoteAddress +':'+ socket.remotePort);
 
+    socket.on('data', function(data) {
+        console.log('DATA:');
+
+    });
+
     socket.on('diameterMessage', processDiameterMessages);
 
     socket.on('end', function() {
