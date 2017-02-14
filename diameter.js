@@ -31,10 +31,6 @@ var server = diameter.createServer(optionsAsTcpServer, function(socket) {
 
     console.log("Client connected through TCP : " +  socket.remoteAddress +':'+ socket.remotePort);
 
-    socket.on('data', function(data) {
-        console.log('DATA:');
-
-    });
 
     socket.on('diameterMessage', processDiameterMessages);
 
@@ -73,31 +69,111 @@ function processDiameterMessages(event,response) {
 
     if (event.message.command=='Credit-Control'){
 
-        //console.log('dsdsdsdsdsdsd');
-
         var avpObj = avp.toObject(event.message.body);
 
+        console.log(avpObj.ccRequestType ==='EVENT_REQUEST');
+        console.log(avpObj.requestedAction);
 
-        if(avpObj.ccRequestType ==='EVENT_BASED'){
+        if(avpObj.ccRequestType ==='EVENT_REQUEST'){
             switch (avpObj.requestedAction){
+
                 case 'PRICE_ENQUIRY':
-                    event.response.body = event.response.body.concat([
-                        ['Result-Code', 'DIAMETER_SUCCESS'],
-                        ['Origin-Host', serverHost],
-                        ['Origin-Realm', serverRealm],
-                        ['Auth-Application-Id', 'Diameter Credit Control'],
-                        ['CC-Request-Number', 0]
-                    ]);
+                    var data = avpObj.subscriptionId.subscriptionIdData;
+
+                    var req = {
+                        body :{},
+                        user :{}
+                    };
+
+                    var datapasred = JSON.parse(data);
+
+                    req.body.Amount = 0 ;
+                    req.user.iss = datapasred.user;
+                    req.body.Reason = 'Per minute Call billeng credit reservation'
+                    req.user.tenant = datapasred.tenant;
+                    req.user.company = datapasred.company;
+                    req.body.SessionId = datapasred.csid;
+                    ratings.getRating(datapasred.to,datapasred.from, datapasred.provider, function(rating){
+
+
+                        console.log(rating);
+                        if(rating == -2){
+                            event.response.body = event.response.body.concat([
+                                ['Result-Code', 'DIAMETER_UNABLE_TO_DELIVER'],
+                                ['Origin-Host', serverHost],
+                                ['Origin-Realm', serverRealm],
+                                ['Auth-Application-Id', 'Diameter Credit Control'],
+                                ['CC-Request-Number', 0]
+                            ]);
+                            event.callback(event.response);
+                        }
+                        else{
+                            req.body.Amount = rating *100 ;
+                            walletHandler.LockCreditFromCustomer(req, function(found){
+
+                                if(JSON.parse(found).IsSuccess){
+                                    event.response.body = event.response.body.concat([
+                                        ['Result-Code', 'DIAMETER_SUCCESS'],
+                                        ['Origin-Host', serverHost],
+                                        ['Origin-Realm', serverRealm],
+                                        ['Auth-Application-Id', 'Diameter Credit Control'],
+                                        ['CC-Request-Number', 0]
+                                    ]);
+                                    event.callback(event.response);
+                                }
+                                else {
+
+                                    console.log(found);
+                                    event.response.body = event.response.body.concat([
+                                        ['Result-Code', 'DIAMETER_RESOURCES_EXCEEDED'],
+                                        ['Origin-Host', serverHost],
+                                        ['Origin-Realm', serverRealm],
+                                        ['Auth-Application-Id', 'Diameter Credit Control'],
+                                        ['CC-Request-Number', 0]
+                                    ]);
+                                    event.callback(event.response);
+
+                                }
+
+                            })
+                        }
+
+
+                    });
                     break;
 
                 case 'CHECK_BALANCE':
-                    event.response.body = event.response.body.concat([
-                        ['Result-Code', 'DIAMETER_SUCCESS'],
-                        ['Origin-Host', serverHost],
-                        ['Origin-Realm', serverRealm],
-                        ['Auth-Application-Id', 'Diameter Credit Control'],
-                        ['CC-Request-Number', 0]
-                    ]);
+                    var data = {dsid : avpObj.sessionId, csid : '123', userinfo : avpObj.subscriptionId.subscriptionIdData};
+                    //console.log(avpObj)
+                    scheduler.callBilling(data).initializeCall(data, function(found){
+                        //console.log(found);
+
+                        if(found && found.IsSuccess){
+                            event.response.body = event.response.body.concat([
+                                ['Result-Code', 'DIAMETER_SUCCESS'],
+                                ['Origin-Host', serverHost],
+                                ['Origin-Realm', serverRealm],
+                                ['Auth-Application-Id', 'Diameter Credit Control'],
+                                ['CC-Request-Number', 0]
+                            ]);
+                            event.callback(event.response);
+                        }
+                        else {
+
+                            console.log(found);
+                            event.response.body = event.response.body.concat([
+                                ['Result-Code', 'DIAMETER_RESOURCES_EXCEEDED'],
+                                ['Origin-Host', serverHost],
+                                ['Origin-Realm', serverRealm],
+                                ['Auth-Application-Id', 'Diameter Credit Control'],
+                                ['CC-Request-Number', 0]
+                            ]);
+                            event.callback(event.response);
+
+                        }
+                    });
+                    break;
+
                     break;
                 case 'DIRECT_DEBITING':
                     event.response.body = event.response.body.concat([
@@ -107,11 +183,23 @@ function processDiameterMessages(event,response) {
                         ['Auth-Application-Id', 'Diameter Credit Control'],
                         ['CC-Request-Number', 0]
                     ]);
+
+                    var data = {dsid : avpObj.sessionId, csid : '123'};
+                    scheduler.callBilling(data).terminateCall(data, function(found){
+                        console.log(found)
+                    });
+
+                    event.callback(event.response);
                     break;
 
 
                 default:
-                    console.log('Invalid CCR recived')
+                    console.log('Invalid CCR recived');
+                    event.callback(event.response);
+                    break;
+
+
+
 
             }
         }

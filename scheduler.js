@@ -620,7 +620,7 @@ function callBilling(data){
 
                                 if(JSON.parse(res).IsSuccess){
 
-                                    console.log(walletURL)
+                                    //console.log(walletURL)
                                     request({
                                         method: "PUT",
                                         url: walletURL,
@@ -685,6 +685,7 @@ function callBilling(data){
 
                             });
 
+                            console.log('111111111111111111111111')
 
 
                             var j = schedule.scheduleJob(rule, function(){
@@ -697,6 +698,7 @@ function callBilling(data){
                                             walletURL = format("http://{0}:{1}/DVP/API/{2}/PaymentManager/Customer/Wallet/Credit", config.Services.walletServiceHost, config.Services.walletServicePort, config.Services.walletServiceVersion);
 
                                         }
+
 
                                         request({
                                             method: "PUT",
