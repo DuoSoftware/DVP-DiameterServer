@@ -583,8 +583,8 @@ function callBilling(data){
             }
 
 
-            //callSessionValidator.getCallSession(JSON.parse(data.userinfo).csid, function (error, obj){
-                //if(obj){
+            callSessionValidator.getCallSession(JSON.parse(data.userinfo).csid, function (error, obj){
+                if(obj){
 
                     var dataParsed = JSON.parse(data.userinfo);
                     var amount = 100;
@@ -685,7 +685,7 @@ function callBilling(data){
 
                             });
 
-                            console.log('111111111111111111111111')
+                            console.log('111111111111111111111111');
 
 
                             var j = schedule.scheduleJob(rule, function(){
@@ -776,12 +776,12 @@ function callBilling(data){
 
 
 
-                //}
-                //else if(error){
-                //    var errresp = {IsSuccess : false, error : error};
-                //    callback(errresp);
-                //}
-            //});
+                }
+                else if(error){
+                    var errresp = {IsSuccess : false, error : error};
+                    callback(errresp);
+                }
+            });
 
 
         },
