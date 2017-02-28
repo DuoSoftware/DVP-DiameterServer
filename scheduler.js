@@ -791,7 +791,6 @@ function callBilling(data){
             //console.log(calls)
             for ( var index in calls){
                 if(calls[index].callSessionId == data.csid){
-                    console.log(calls[index])
                     removeIndex = index;
                     break;
                 }

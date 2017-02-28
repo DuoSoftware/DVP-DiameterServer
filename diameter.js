@@ -159,7 +159,7 @@ function processDiameterMessages(event,response) {
 
                     var removeIndex = -1;
                     for ( var index in LockedCredit){
-                        if(LockedCredit[index].csid ==  avpObj.subscriptionId.subscriptionIdData.csid){
+                        if(LockedCredit[index].csid ==  JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid){
                             removeIndex = index;
                             break;
                         }
@@ -209,19 +209,42 @@ function processDiameterMessages(event,response) {
                         ['CC-Request-Number', 0]
                     ]);
 
-                    console.log('################################################################');
                     console.log(JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid);
                     console.log(LockedCredit);
+
                     var removeIndex = -1;
                     for ( var index in LockedCredit){
-                        if(LockedCredit[index].csid == JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid){
+
+                        var dataParsed =JSON.parse(avpObj.subscriptionId.subscriptionIdData);
+                        if(LockedCredit[index].csid == dataParsed.csid){
+                            var request = {
+                                body :{},
+                                user :{}
+                            };
+
+
+                            request.body.Amount = LockedCredit[index].amount ;
+                            request.user.iss = dataParsed.user;
+                            request.body.Reason = 'Unused Locked Credit Released';
+                            request.user.tenant = dataParsed.tenant;
+                            request.user.company = dataParsed.company;
+                            request.body.SessionId = dataParsed.csid;
+                            walletHandler.ReleaseCreditFromCustomer(request, function(res){
+                                console.log('################################################################');
+                                if(JSON.parse(res).IsSuccess){
+                                    console.log('Unused Locked Credit Released');
+                                }
+                                console.log('################################################################');
+
+
+                            });
+
                             removeIndex = index;
                             break;
                         }
 
                     }
                     if (removeIndex != -1){
-                        console.log('Unused Locked Credit Released');
                         LockedCredit.splice(removeIndex, 1);
                     }
 
