@@ -19,6 +19,9 @@ var relayHost = 'localhost';
 var relayPort = 3868;
 var relayIP = '127.0.0.1';
 
+
+var LockedCredit = [];
+
 var optionsAsTcpServer = {
     beforeAnyMessage: diameter.logMessage,
     afterAnyMessage: diameter.logMessage
@@ -108,10 +111,18 @@ function processDiameterMessages(event,response) {
                             event.callback(event.response);
                         }
                         else{
-                            req.body.Amount = rating *100 ;
+                            req.body.Amount = rating *100;
                             walletHandler.LockCreditFromCustomer(req, function(found){
 
                                 if(JSON.parse(found).IsSuccess){
+
+                                    var creditLock = {
+                                        csid : datapasred.csid,
+                                        amount : req.body.Amount
+                                    };
+
+                                    LockedCredit.push(creditLock);
+
                                     event.response.body = event.response.body.concat([
                                         ['Result-Code', 'DIAMETER_SUCCESS'],
                                         ['Origin-Host', serverHost],
@@ -143,8 +154,22 @@ function processDiameterMessages(event,response) {
                     break;
 
                 case 'CHECK_BALANCE':
-                    var data = {dsid : avpObj.sessionId, csid : '123', userinfo : avpObj.subscriptionId.subscriptionIdData};
+                    var data = {dsid : avpObj.sessionId, csid : JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid, userinfo : avpObj.subscriptionId.subscriptionIdData};
                     //console.log(avpObj)
+
+                    var removeIndex = -1;
+                    for ( var index in LockedCredit){
+                        if(LockedCredit[index].csid ==  avpObj.subscriptionId.subscriptionIdData.csid){
+                            removeIndex = index;
+                            break;
+                        }
+
+                    }
+                    if (removeIndex != -1){
+                        console.log('Locked Credit Removed');
+                        LockedCredit.splice(removeIndex, 1);
+                    }
+
                     scheduler.callBilling(data).initializeCall(data, function(found){
                         //console.log(found);
 
@@ -184,7 +209,23 @@ function processDiameterMessages(event,response) {
                         ['CC-Request-Number', 0]
                     ]);
 
-                    var data = {dsid : avpObj.sessionId, csid : '123'};
+                    console.log('################################################################');
+                    console.log(JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid);
+                    console.log(LockedCredit);
+                    var removeIndex = -1;
+                    for ( var index in LockedCredit){
+                        if(LockedCredit[index].csid == JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid){
+                            removeIndex = index;
+                            break;
+                        }
+
+                    }
+                    if (removeIndex != -1){
+                        console.log('Unused Locked Credit Released');
+                        LockedCredit.splice(removeIndex, 1);
+                    }
+
+                    var data = {dsid : avpObj.sessionId, csid : JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid};
                     scheduler.callBilling(data).terminateCall(data, function(found){
                         console.log(found)
                     });

@@ -788,8 +788,10 @@ function callBilling(data){
         terminateCall : function (data, callback){
             console.log('Call Ended');
             var removeIndex = -1;
+            //console.log(calls)
             for ( var index in calls){
                 if(calls[index].callSessionId == data.csid){
+                    console.log(calls[index])
                     removeIndex = index;
                     break;
                 }
