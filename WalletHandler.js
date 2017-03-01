@@ -16,7 +16,7 @@ var Q = require('q');
 var client = redis.createClient(config.Redis.port, config.Redis.ip);
 client.auth(config.Redis.password);
 client.select(config.Redis.redisdb, redis.print);
-//client.select(config.Redis.redisdb, function () { /* ... */ });
+//client.select(config.Redis.redisdb, function () {});
 client.on("error", function (err) {
     logger.error('error', 'Redis connection error :: %s', err);
     console.log("Error " + err);
@@ -135,20 +135,20 @@ var deductCredit = function (req, wallet, credit, amount) {
                         StripeId: undefined,
                         Description: req.body.Reason,
                         CurrencyISO: undefined,
-                        Credit: credit + parseFloat(wallet.LockCredit),
+                        Credit: credit,
                         Tag: undefined,
                         TenantId: req.user.tenant,
                         CompanyId: req.user.company,
                         OtherJsonData: {
                             "msg": "DeductCredit",
-                            "amount": amount, "Balance": credit,"LockCredit":wallet.LockCredit,
-                            "invokeBy": req.body.name ? req.body.name :req.user.iss,
+                            "amount": amount, "Balance": credit,
+                            "invokeBy": req.user.iss,
                             "OtherJsonData": req.body.OtherJsonData
                         },
                         WalletId: cmp.WalletId,
                         Operation: 'DeductCredit',
-                        InvokeBy: req.body.name ? req.body.name :req.user.iss,
-                        Reason: req.body.Reason ? req.body.Reason : "Deduct Credit using Credit Card"
+                        InvokeBy: req.user.iss,
+                        Reason: req.body.Reason ? req.body.Reason : "Buy Credit using Credit Card"
                     };
                     addHistory(data);
                 }).error(function (error) {
@@ -292,12 +292,8 @@ module.exports.CreateWalletBulk = function (req, res) {
      });
      });
      }
-
-
-
      async.parallel(task, function(err, results) {
      if(err){
-
      }
      else{
      if(results){
@@ -329,7 +325,6 @@ module.exports.CreateWalletBulk = function (req, res) {
      logger.error('CreateWalletBulk - failed', err);
      res.end(jsonString);
      }).finally(function () {
-
      });
      }
      }
@@ -396,7 +391,6 @@ module.exports.BuyCredit = function (req, res) {
  lock(walletId, ttl, function (done) {
  console.log("Lock acquired" + walletId);
  // No one else will be able to get a lock on 'myLock' until you call done()  done();
-
  DbConn.Wallet.find({
  where: [{WalletId: walletId}, {Owner: req.user.iss}, {TenantId: req.user.tenant}, {CompanyId: req.user.company}, {Status: true}]
  }).then(function (wallet) {
@@ -436,7 +430,6 @@ module.exports.BuyCredit = function (req, res) {
  done();
  res.end(jsonString);
  });
-
  }, function (error) {
  var jsonString = messageFormatter.FormatMessage(error, "EXCEPTION", false, undefined);
  logger.error('BuyCredit - Fail To Update Wallet. - [%s] .', jsonString);
@@ -457,7 +450,6 @@ module.exports.BuyCredit = function (req, res) {
  res.end(jsonString);
  });
  });
-
  }
  else {
  var jsonString = messageFormatter.FormatMessage(new Error("No Wallet ID"), "EXCEPTION", false, undefined);
@@ -471,7 +463,6 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
      lock(req.params.WalletId, ttl, function (done) {
      console.log("Lock acquired" + req.params.WalletId);
      // No one else will be able to get a lock on 'myLock' until you call done()  done();
-
      DbConn.Wallet.find({
      where: [{WalletId: req.params.WalletId}, {Owner: req.user.iss}, {TenantId: req.user.tenant}, {CompanyId: req.user.company}, {Status: true}]
      }).then(function (wallet) {
@@ -481,9 +472,7 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
      CurrencyISO: wallet.CurrencyISO,
      StripeId: req.params.cardId
      };
-
      directPayment.BuyCredit(walData, amount).then(function (charge) {
-
      DbConn.Wallet
      .update(
      {
@@ -515,7 +504,6 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
      done();
      res.end(jsonString);
      });
-
      }, function (error) {
      var jsonString = messageFormatter.FormatMessage(error, "EXCEPTION", false, undefined);
      logger.error('BuyCredit - Fail To Update Wallet. - [%s] .', jsonString);
@@ -536,7 +524,6 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
      res.end(jsonString);
      });
      });
-
      }
      else {
      var jsonString = messageFormatter.FormatMessage(new Error("No Wallet ID"), "EXCEPTION", false, undefined);
@@ -546,7 +533,6 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
 };
 
 /*module.exports.DeductCredit = function (req, res) {
-
  lock(req.params.WalletId, ttl, function (done) {
  console.log("Lock acquired" + req.params.WalletId);
  // No one else will be able to get a lock on 'myLock' until you call done()  done();
@@ -610,7 +596,6 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
  res.end(jsonString);
  });
  });
-
  };*/
 
 module.exports.DeductCredit = function (req, res) {
@@ -637,7 +622,7 @@ module.exports.DeductCredit = function (req, res) {
                     if (wallet.ThresholdValue > credit) {
                         var b = wallet.AutoRechargeAmount - credit;
                         if (b > 0 && b > amount) {
-                            buyCredit(wallet.WalletId, b, req.user).then(function (cmp) {
+                            buyCredit(wallet.WalletId, b, req.body.user).then(function (cmp) {
                                 if (cmp > amount) {
                                     deductCredit(req, wallet, credit, amount).then(function (cmp) {
                                         var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
@@ -702,7 +687,7 @@ module.exports.DeductCreditFormCustomer = function (req, res) {
         if (wallet) {
             var amount = parseFloat(req.body.Amount);
             var credit = parseFloat(wallet.Credit);
-            if (credit >= amount) {
+            if (credit > amount) {
                 deductCredit(req, wallet, credit, amount).then(function (cmp) {
                     var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
                     logger.info('DeductCredit - Update Wallet - [%s] .', jsonString);
@@ -715,7 +700,7 @@ module.exports.DeductCreditFormCustomer = function (req, res) {
             }
             else {
                 if (wallet.AutoRecharge) {
-                    buyCredit(wallet.WalletId, wallet.AutoRechargeAmount, req.user).then(function (cmp) {
+                    buyCredit(wallet.WalletId, wallet.AutoRechargeAmount, req.body.user).then(function (cmp) {
                         if (cmp > amount) {
                             deductCredit(req, wallet, credit, amount).then(function (cmp) {
                                 var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
@@ -807,15 +792,12 @@ module.exports.DeductCreditFormCustomer = function (req, res) {
      res.end(jsonString);
      }
      });
-
      }
      else {
      var jsonString = messageFormatter.FormatMessage(new Error("Invalid Wallet ID"), "EXCEPTION", false, undefined);
      logger.error('[DeductCreditFormCustomer] - [%s] ', jsonString);
      res.end(jsonString);
      }
-
-
      }).error(function (err) {
      var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
      logger.error('[DeductCreditFormCustomer] - [%s] ', jsonString);
@@ -1132,8 +1114,6 @@ module.exports.getWalletHistory = function (req, res) {
      jsonString = messageFormatter.FormatMessage(undefined, "NO WALLET RECORD FOUND", false, 0);
      res.end(jsonString);
      }
-
-
      }).error(function (err) {
      var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
      logger.error('[Search wallet data ] - [%s] ', jsonString);
@@ -1188,7 +1168,7 @@ var LockCredit = function (sessionId,amount, invokeBy, reason, tenant, company) 
                             OtherJsonData: {
                                 "msg": "DeductCredit",
                                 "amount": amount, "Balance": credit,
-                                "LockCredit": lockCredit,
+                                "LockCredit": amount,
                                 "invokeBy": invokeBy,
                                 "OtherJsonData": "{'sessionId':"+sessionId+"}"
                             },
@@ -1294,17 +1274,17 @@ module.exports.LockCreditFromCustomer = function (req, res) {
     if(!req.body.SessionId ||req.body.Amount<=0){
         var jsonString = messageFormatter.FormatMessage(new Error("Invalid Details."), "EXCEPTION", false, undefined);
         logger.error('LockCreditFromCustomer -  [%s] .', jsonString);
-        res.end(jsonString);
+        res(jsonString);
     }
     else{
         LockCredit(req.body.SessionId,req.body.Amount, req.user.iss, req.body.Reason, req.user.tenant, req.user.company).then(function (cmp) {
             var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
             logger.info('LockCreditFromCustomer - [%s] .', jsonString);
-            res.end(jsonString);
+            res(jsonString);
         }, function (error) {
             var jsonString = messageFormatter.FormatMessage(error, "EXCEPTION", false, undefined);
             logger.error('LockCreditFromCustomer -  [%s] .', jsonString);
-            res.end(jsonString);
+            res(jsonString);
         });
     }
 
@@ -1314,17 +1294,17 @@ module.exports.ReleaseCreditFromCustomer = function (req, res) {
     if(req.body.Amount<=0){
         var jsonString = messageFormatter.FormatMessage(new Error("Invalid Details."), "EXCEPTION", false, undefined);
         logger.error('LockCreditFromCustomer -  [%s] .', jsonString);
-        res.end(jsonString);
+        res(jsonString);
     }
     else{
         ReleaseCredit(req.body.SessionId,req.body.Amount,req.user.iss, req.body.Reason, req.user.tenant, req.user.company).then(function (cmp) {
             var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
             logger.info('ReleaseCredit - [%s] .', jsonString);
-            res.end(jsonString);
+            res(jsonString);
         }, function (error) {
             var jsonString = messageFormatter.FormatMessage(error, "EXCEPTION", false, undefined);
             logger.error('ReleaseCredit -  [%s] .', jsonString);
-            res.end(jsonString);
+            res(jsonString);
         });
     }
 
