@@ -16,7 +16,7 @@ var Q = require('q');
 var client = redis.createClient(config.Redis.port, config.Redis.ip);
 client.auth(config.Redis.password);
 client.select(config.Redis.redisdb, redis.print);
-//client.select(config.Redis.redisdb, function () {});
+//client.select(config.Redis.redisdb, function () { /* ... */ });
 client.on("error", function (err) {
     logger.error('error', 'Redis connection error :: %s', err);
     console.log("Error " + err);
@@ -142,12 +142,12 @@ var deductCredit = function (req, wallet, credit, amount) {
                         OtherJsonData: {
                             "msg": "DeductCredit",
                             "amount": amount, "Balance": credit,
-                            "invokeBy": req.user.iss,
+                            "invokeBy": req.body.name ? req.body.name :req.user.iss,
                             "OtherJsonData": req.body.OtherJsonData
                         },
                         WalletId: cmp.WalletId,
                         Operation: 'DeductCredit',
-                        InvokeBy: req.user.iss,
+                        InvokeBy: req.body.name ? req.body.name :req.user.iss,
                         Reason: req.body.Reason ? req.body.Reason : "Buy Credit using Credit Card"
                     };
                     addHistory(data);
@@ -622,7 +622,7 @@ module.exports.DeductCredit = function (req, res) {
                     if (wallet.ThresholdValue > credit) {
                         var b = wallet.AutoRechargeAmount - credit;
                         if (b > 0 && b > amount) {
-                            buyCredit(wallet.WalletId, b, req.body.user).then(function (cmp) {
+                            buyCredit(wallet.WalletId, b, req.user).then(function (cmp) {
                                 if (cmp > amount) {
                                     deductCredit(req, wallet, credit, amount).then(function (cmp) {
                                         var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
@@ -687,7 +687,7 @@ module.exports.DeductCreditFormCustomer = function (req, res) {
         if (wallet) {
             var amount = parseFloat(req.body.Amount);
             var credit = parseFloat(wallet.Credit);
-            if (credit > amount) {
+            if (credit >= amount) {
                 deductCredit(req, wallet, credit, amount).then(function (cmp) {
                     var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
                     logger.info('DeductCredit - Update Wallet - [%s] .', jsonString);
@@ -700,7 +700,7 @@ module.exports.DeductCreditFormCustomer = function (req, res) {
             }
             else {
                 if (wallet.AutoRecharge) {
-                    buyCredit(wallet.WalletId, wallet.AutoRechargeAmount, req.body.user).then(function (cmp) {
+                    buyCredit(wallet.WalletId, wallet.AutoRechargeAmount, req.user).then(function (cmp) {
                         if (cmp > amount) {
                             deductCredit(req, wallet, credit, amount).then(function (cmp) {
                                 var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
@@ -1274,17 +1274,17 @@ module.exports.LockCreditFromCustomer = function (req, res) {
     if(!req.body.SessionId ||req.body.Amount<=0){
         var jsonString = messageFormatter.FormatMessage(new Error("Invalid Details."), "EXCEPTION", false, undefined);
         logger.error('LockCreditFromCustomer -  [%s] .', jsonString);
-        res(jsonString);
+        res.end(jsonString);
     }
     else{
         LockCredit(req.body.SessionId,req.body.Amount, req.user.iss, req.body.Reason, req.user.tenant, req.user.company).then(function (cmp) {
             var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
             logger.info('LockCreditFromCustomer - [%s] .', jsonString);
-            res(jsonString);
+            res.end(jsonString);
         }, function (error) {
             var jsonString = messageFormatter.FormatMessage(error, "EXCEPTION", false, undefined);
             logger.error('LockCreditFromCustomer -  [%s] .', jsonString);
-            res(jsonString);
+            res.end(jsonString);
         });
     }
 
@@ -1294,17 +1294,17 @@ module.exports.ReleaseCreditFromCustomer = function (req, res) {
     if(req.body.Amount<=0){
         var jsonString = messageFormatter.FormatMessage(new Error("Invalid Details."), "EXCEPTION", false, undefined);
         logger.error('LockCreditFromCustomer -  [%s] .', jsonString);
-        res(jsonString);
+        res.end(jsonString);
     }
     else{
         ReleaseCredit(req.body.SessionId,req.body.Amount,req.user.iss, req.body.Reason, req.user.tenant, req.user.company).then(function (cmp) {
             var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
             logger.info('ReleaseCredit - [%s] .', jsonString);
-            res(jsonString);
+            res.end(jsonString);
         }, function (error) {
             var jsonString = messageFormatter.FormatMessage(error, "EXCEPTION", false, undefined);
             logger.error('ReleaseCredit -  [%s] .', jsonString);
-            res(jsonString);
+            res.end(jsonString);
         });
     }
 
