@@ -616,9 +616,9 @@ function callBilling(data){
                             req.user.tenant = dataParsed.tenant;
                             req.user.company = dataParsed.company;
                             req.body.SessionId = dataParsed.csid;
-                            walletHandler.ReleaseCreditFromCustomer(req, function(res){
+                            //walletHandler.ReleaseCreditFromCustomer(req, function(res){
 
-                                if(JSON.parse(res).IsSuccess){
+                                //if(JSON.parse(res).IsSuccess){
 
                                     //console.log(walletURL)
                                     request({
@@ -637,32 +637,45 @@ function callBilling(data){
                                         }
                                         else if(datax && !datax.IsSuccess){
 
-                                            console.log(datax);
-                                            var monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiVersion);
-                                            if (validator.isIP(config.Services.walletServiceHost)) {
-                                                monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiPort, config.Services.monitorRestApiVersion);
+                                            walletHandler.ReleaseCreditFromCustomer(req, function(res){
 
-                                            }
-
-                                            request({
-                                                method: "POST",
-                                                url: monitorRestApiUrl,
-                                                headers: {
-                                                    Authorization: token,
-                                                    companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
-                                                }
-                                            }, function (_error, _response, datax) {
-                                                //console.log(datax);
-                                                if(datax && datax.IsSuccess){
-
-                                                    var res = {IsSuccess : false};
-                                                    callback(res);
+                                                if(JSON.parse(res).IsSuccess){
+                                                    console.log('Final Minute For Call');
                                                     console.log(datax);
+                                                    callback(datax);
                                                 }
                                                 else{
-                                                    var res = {IsSuccess : false};
-                                                    callback(res);
-                                                    console.log(_error);
+
+                                                    console.log(datax);
+                                                    var monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiVersion);
+                                                    if (validator.isIP(config.Services.walletServiceHost)) {
+                                                        monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiPort, config.Services.monitorRestApiVersion);
+
+                                                    }
+
+                                                    request({
+                                                        method: "POST",
+                                                        url: monitorRestApiUrl,
+                                                        headers: {
+                                                            Authorization: token,
+                                                            companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
+                                                        }
+                                                    }, function (_error, _response, datax) {
+                                                        //console.log(datax);
+                                                        if(datax && datax.IsSuccess){
+
+                                                            var res = {IsSuccess : false};
+                                                            callback(res);
+                                                            console.log(datax);
+                                                        }
+                                                        else{
+                                                            var res = {IsSuccess : false};
+                                                            callback(res);
+                                                            console.log(_error);
+                                                        }
+
+                                                    });
+
                                                 }
 
                                             });
@@ -676,14 +689,14 @@ function callBilling(data){
 
                                     });
 
-                                }
-                                else{
-                                    var res = {IsSuccess : false};
-                                    callback(res);
-                                }
+                                //}
+                                //else{
+                                //    var res = {IsSuccess : false};
+                                //    callback(res);
+                                //}
 
 
-                            });
+                            //});
 
                             console.log('111111111111111111111111');
 
@@ -711,6 +724,7 @@ function callBilling(data){
                                         }, function (_error, _response, datax) {
                                             //console.log(datax);
                                             if(datax && datax.IsSuccess){
+                                                console.log(JSON.parse(data.userinfo).csid);
                                                 console.log(datax);
                                             }
                                             else{
