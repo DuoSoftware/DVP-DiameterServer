@@ -242,6 +242,31 @@ function processDiameterMessages(event,response) {
                             removeIndex = index;
                             break;
                         }
+                        else if (index == LockedCredit.length -1){
+
+                            var request = {
+                                body :{},
+                                user :{}
+                            };
+
+
+                            request.body.Amount = LockedCredit[index].amount ;
+                            request.user.iss = dataParsed.user;
+                            request.body.Reason = 'Unused Locked Credit Released';
+                            request.user.tenant = dataParsed.tenant;
+                            request.user.company = dataParsed.company;
+                            request.body.SessionId = dataParsed.csid;
+                            walletHandler.ReleaseCreditFromCustomer(request, function(res){
+                                console.log('################################################################');
+                                if(JSON.parse(res).IsSuccess){
+                                    console.log('Unused Locked Credit Released');
+                                }
+                                console.log('################################################################');
+
+
+                            });
+
+                        }
 
                     }
                     if (removeIndex != -1){
