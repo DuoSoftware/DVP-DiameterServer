@@ -135,20 +135,20 @@ var deductCredit = function (req, wallet, credit, amount) {
                         StripeId: undefined,
                         Description: req.body.Reason,
                         CurrencyISO: undefined,
-                        Credit: credit,
+                        Credit: credit + parseFloat(wallet.LockCredit),
                         Tag: undefined,
                         TenantId: req.user.tenant,
                         CompanyId: req.user.company,
                         OtherJsonData: {
                             "msg": "DeductCredit",
-                            "amount": amount, "Balance": credit,
+                            "amount": amount, "Balance": credit,"LockCredit":wallet.LockCredit,
                             "invokeBy": req.body.name ? req.body.name :req.user.iss,
                             "OtherJsonData": req.body.OtherJsonData
                         },
                         WalletId: cmp.WalletId,
                         Operation: 'DeductCredit',
                         InvokeBy: req.body.name ? req.body.name :req.user.iss,
-                        Reason: req.body.Reason ? req.body.Reason : "Buy Credit using Credit Card"
+                        Reason: req.body.Reason ? req.body.Reason : "Deduct Credit using Credit Card"
                     };
                     addHistory(data);
                 }).error(function (error) {
@@ -292,8 +292,12 @@ module.exports.CreateWalletBulk = function (req, res) {
      });
      });
      }
+
+
+
      async.parallel(task, function(err, results) {
      if(err){
+
      }
      else{
      if(results){
@@ -325,6 +329,7 @@ module.exports.CreateWalletBulk = function (req, res) {
      logger.error('CreateWalletBulk - failed', err);
      res.end(jsonString);
      }).finally(function () {
+
      });
      }
      }
@@ -391,6 +396,7 @@ module.exports.BuyCredit = function (req, res) {
  lock(walletId, ttl, function (done) {
  console.log("Lock acquired" + walletId);
  // No one else will be able to get a lock on 'myLock' until you call done()  done();
+
  DbConn.Wallet.find({
  where: [{WalletId: walletId}, {Owner: req.user.iss}, {TenantId: req.user.tenant}, {CompanyId: req.user.company}, {Status: true}]
  }).then(function (wallet) {
@@ -430,6 +436,7 @@ module.exports.BuyCredit = function (req, res) {
  done();
  res.end(jsonString);
  });
+
  }, function (error) {
  var jsonString = messageFormatter.FormatMessage(error, "EXCEPTION", false, undefined);
  logger.error('BuyCredit - Fail To Update Wallet. - [%s] .', jsonString);
@@ -450,6 +457,7 @@ module.exports.BuyCredit = function (req, res) {
  res.end(jsonString);
  });
  });
+
  }
  else {
  var jsonString = messageFormatter.FormatMessage(new Error("No Wallet ID"), "EXCEPTION", false, undefined);
@@ -463,6 +471,7 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
      lock(req.params.WalletId, ttl, function (done) {
      console.log("Lock acquired" + req.params.WalletId);
      // No one else will be able to get a lock on 'myLock' until you call done()  done();
+
      DbConn.Wallet.find({
      where: [{WalletId: req.params.WalletId}, {Owner: req.user.iss}, {TenantId: req.user.tenant}, {CompanyId: req.user.company}, {Status: true}]
      }).then(function (wallet) {
@@ -472,7 +481,9 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
      CurrencyISO: wallet.CurrencyISO,
      StripeId: req.params.cardId
      };
+
      directPayment.BuyCredit(walData, amount).then(function (charge) {
+
      DbConn.Wallet
      .update(
      {
@@ -504,6 +515,7 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
      done();
      res.end(jsonString);
      });
+
      }, function (error) {
      var jsonString = messageFormatter.FormatMessage(error, "EXCEPTION", false, undefined);
      logger.error('BuyCredit - Fail To Update Wallet. - [%s] .', jsonString);
@@ -524,6 +536,7 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
      res.end(jsonString);
      });
      });
+
      }
      else {
      var jsonString = messageFormatter.FormatMessage(new Error("No Wallet ID"), "EXCEPTION", false, undefined);
@@ -533,6 +546,7 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
 };
 
 /*module.exports.DeductCredit = function (req, res) {
+
  lock(req.params.WalletId, ttl, function (done) {
  console.log("Lock acquired" + req.params.WalletId);
  // No one else will be able to get a lock on 'myLock' until you call done()  done();
@@ -596,6 +610,7 @@ module.exports.BuyCreditFormSelectedCard = function (req, res) {
  res.end(jsonString);
  });
  });
+
  };*/
 
 module.exports.DeductCredit = function (req, res) {
@@ -792,12 +807,15 @@ module.exports.DeductCreditFormCustomer = function (req, res) {
      res.end(jsonString);
      }
      });
+
      }
      else {
      var jsonString = messageFormatter.FormatMessage(new Error("Invalid Wallet ID"), "EXCEPTION", false, undefined);
      logger.error('[DeductCreditFormCustomer] - [%s] ', jsonString);
      res.end(jsonString);
      }
+
+
      }).error(function (err) {
      var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
      logger.error('[DeductCreditFormCustomer] - [%s] ', jsonString);
@@ -1114,6 +1132,8 @@ module.exports.getWalletHistory = function (req, res) {
      jsonString = messageFormatter.FormatMessage(undefined, "NO WALLET RECORD FOUND", false, 0);
      res.end(jsonString);
      }
+
+
      }).error(function (err) {
      var jsonString = messageFormatter.FormatMessage(err, "EXCEPTION", false, undefined);
      logger.error('[Search wallet data ] - [%s] ', jsonString);
@@ -1168,7 +1188,7 @@ var LockCredit = function (sessionId,amount, invokeBy, reason, tenant, company) 
                             OtherJsonData: {
                                 "msg": "DeductCredit",
                                 "amount": amount, "Balance": credit,
-                                "LockCredit": amount,
+                                "LockCredit": lockCredit,
                                 "invokeBy": invokeBy,
                                 "OtherJsonData": "{'sessionId':"+sessionId+"}"
                             },
