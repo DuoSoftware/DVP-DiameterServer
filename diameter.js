@@ -211,63 +211,37 @@ function processDiameterMessages(event,response) {
 
                     console.log(JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid);
                     console.log(LockedCredit);
+                    var dataParsed =JSON.parse(avpObj.subscriptionId.subscriptionIdData);
+
+                    var request = {
+                        body :{},
+                        user :{}
+                    };
+
+
+                    request.body.Amount = LockedCredit[index].amount ;
+                    request.user.iss = dataParsed.user;
+                    request.body.Reason = 'Unused Locked Credit Released';
+                    request.user.tenant = dataParsed.tenant;
+                    request.user.company = dataParsed.company;
+                    request.body.SessionId = dataParsed.csid;
+                    
+                    walletHandler.ReleaseCreditFromCustomer(request, function(res){
+                        console.log('################################################################');
+                        if(JSON.parse(res).IsSuccess){
+                            console.log('Unused Locked Credit Released');
+                        }
+                        console.log('################################################################');
+
+
+                    });
 
                     var removeIndex = -1;
                     for ( var index in LockedCredit){
-
-                        var dataParsed =JSON.parse(avpObj.subscriptionId.subscriptionIdData);
                         if(LockedCredit[index].csid == dataParsed.csid){
-                            var request = {
-                                body :{},
-                                user :{}
-                            };
-
-
-                            request.body.Amount = LockedCredit[index].amount ;
-                            request.user.iss = dataParsed.user;
-                            request.body.Reason = 'Unused Locked Credit Released';
-                            request.user.tenant = dataParsed.tenant;
-                            request.user.company = dataParsed.company;
-                            request.body.SessionId = dataParsed.csid;
-                            walletHandler.ReleaseCreditFromCustomer(request, function(res){
-                                console.log('################################################################');
-                                if(JSON.parse(res).IsSuccess){
-                                    console.log('Unused Locked Credit Released');
-                                }
-                                console.log('################################################################');
-
-
-                            });
-
                             removeIndex = index;
                             break;
                         }
-                        else if (index == LockedCredit.length -1){
-
-                            var request = {
-                                body :{},
-                                user :{}
-                            };
-
-
-                            request.body.Amount = LockedCredit[index].amount ;
-                            request.user.iss = dataParsed.user;
-                            request.body.Reason = 'Unused Locked Credit Released';
-                            request.user.tenant = dataParsed.tenant;
-                            request.user.company = dataParsed.company;
-                            request.body.SessionId = dataParsed.csid;
-                            walletHandler.ReleaseCreditFromCustomer(request, function(res){
-                                console.log('################################################################');
-                                if(JSON.parse(res).IsSuccess){
-                                    console.log('Unused Locked Credit Released');
-                                }
-                                console.log('################################################################');
-
-
-                            });
-
-                        }
-
                     }
                     if (removeIndex != -1){
                         LockedCredit.splice(removeIndex, 1);
