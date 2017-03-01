@@ -225,7 +225,7 @@ function processDiameterMessages(event,response) {
                     request.user.tenant = dataParsed.tenant;
                     request.user.company = dataParsed.company;
                     request.body.SessionId = dataParsed.csid;
-                    
+
                     walletHandler.ReleaseCreditFromCustomer(request, function(res){
                         console.log('################################################################');
                         if(JSON.parse(res).IsSuccess){
