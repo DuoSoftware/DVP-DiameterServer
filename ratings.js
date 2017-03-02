@@ -358,12 +358,9 @@ function getRating(to, from, provider, callback){
                     }
                 }, function (_error, _response, datax) {
 
-
-
-
                     if(datax && datax.IsSuccess){
                         if(datax.Carrier.toUpperCase() === provider.toUpperCase()){
-                            console.log(datax)
+                            console.log(datax);
                             sameNetwork = true;
                         }
 
