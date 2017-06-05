@@ -105,7 +105,8 @@ function getRating(to, from, provider, callback){
 
                             }*/
 
-                            var carrierProvider = "http://104.236.197.119:8080/carrierProvider/";
+                            //var carrierProvider = "http://104.236.197.119:8080/carrierProvider/";
+                            var carrierProvider = config.Services.carrierProviderHost+"/carrierProvider/";
 
                             request({
                                 method: "POST",
@@ -126,7 +127,7 @@ function getRating(to, from, provider, callback){
 
                                 if(datax && datax.IsSuccess){
                                     if(datax.Carrier.toUpperCase() === provider.toUpperCase()){
-                                        console.log(datax)
+                                        console.log(datax);
                                         sameNetwork = true;
                                     }
 
@@ -342,7 +343,8 @@ function getRating(to, from, provider, callback){
 
                  }*/
 
-                var carrierProvider = "http://104.236.197.119:8080/carrierProvider/";
+                //var carrierProvider = "http://104.236.197.119:8080/carrierProvider/";
+                var carrierProvider = config.Services.carrierProviderHost+"/carrierProvider/";
 
                 request({
                     method: "POST",

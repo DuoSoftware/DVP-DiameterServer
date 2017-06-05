@@ -54,7 +54,7 @@ module.exports = {
         "port": "HOST_DIAMETERSERVER_PORT",
         "version": "HOST_VERSION",
         "reschedulefreqency": "BILLING_SCHEDULE_FREQUENCY",
-        "rescheduletries": "BILLING_SCHEDULE_TRIES",
+        "rescheduletries": "BILLING_SCHEDULE_TRIES"
 
 
     },
@@ -76,6 +76,10 @@ module.exports = {
         "walletServiceHost": "SYS_WALLETSERVICE_HOST",
         "walletServicePort":  "SYS_WALLETSERVICE_PORT",
         "walletServiceVersion":  "SYS_WALLETSERVICE_VERSION",
+
+        "carrierProviderHost": "SYS_CARRIERPROVIDER_HOST",
+        "carrierProviderPort": "SYS_CARRIERPROVIDER_PORT",
+        "carrierProviderVersion": "SYS_CARRIERPROVIDER_VERSION",
 
         "monitorRestApiHost": "SYS_MONITORRESTAPI_HOST",
         "monitorRestApiPost":  "SYS_MONITORRESTAPI_PORT",

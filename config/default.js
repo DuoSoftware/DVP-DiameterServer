@@ -81,6 +81,10 @@ module.exports = {
         "walletServiceHost": "walletservice.app.veery.cloud",
         "walletServicePort": "3333",
         "walletServiceVersion": "1.0.0.0",
+        "carrierProviderHost": "carrierprovider.app.veery.cloud",
+        "carrierProviderPort": "8080",
+        "carrierProviderVersion": "1.0.0.0",
+
         "monitorRestApiHost": "monitorrestapi.app.veery.cloud",
         "monitorRestApiPort": "",
         "monitorRestApiVersion": "1.0.0.0"
