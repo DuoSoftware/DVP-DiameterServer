@@ -3,6 +3,11 @@
  */
 var messageFormatter = require('dvp-common/CommonMessageGenerator/ClientMessageJsonFormatter.js');
 var libphonenumber = require('libphonenumber');
+var config = require('config');
+var request = require('request');
+var format = require("stringformat");
+var token = format("Bearer {0}",config.Services.accessToken);
+
 var DBconn = require('./DbHandler');
 var networkDictionary = require('./NetworkDictionary.json')
 
@@ -54,6 +59,11 @@ function getRating(to, from, provider, callback){
         var toCountryCode = libphonenumber.phoneUtil.getRegionCodeForNumber(libphonenumber.phoneUtil.parseAndKeepRawInput(to, null));
         var fromCountryCode = libphonenumber.phoneUtil.getRegionCodeForNumber(libphonenumber.phoneUtil.parseAndKeepRawInput(from, null));
         var fromCountryDigit = libphonenumber.phoneUtil.getCountryCodeForRegion(fromCountryCode);
+        var toCountryDigit = libphonenumber.phoneUtil.getCountryCodeForRegion(toCountryCode);
+        var fromNationSigNum = libphonenumber.phoneUtil.getNationalSignificantNumber(libphonenumber.phoneUtil.parseAndKeepRawInput(from, null));
+        var toNationSigNum = libphonenumber.phoneUtil.getNationalSignificantNumber(libphonenumber.phoneUtil.parseAndKeepRawInput(to, null));
+        console.log('toCountryDigit '+toCountryDigit);
+        console.log('toNationSigNum '+toNationSigNum);
 
     }
     catch (e){
@@ -85,56 +95,103 @@ function getRating(to, from, provider, callback){
                         console.log('This is a local call');
 
                         var sameNetwork = false;
-                        for (var index in networkDictionary[fromCountryCode][provider]){
-                            var prefixStr = networkDictionary[fromCountryCode][provider][index];
-                            var found = to.match(prefixStr);
-                            if(found !=null){
-                                sameNetwork =true;
-                                break;
-                            }
-                        }
 
-                        for(var i = 0; i<ratingTable.length; i++){
+                        try{
+
+                            /*var carrierProvider = format("http://{0}/DVP/API/{1}/PaymentManager/Customer/Wallet/Credit", config.Services.carrierProviderHost, config.Services.carrierProviderVersion);
+
+                            if (validator.isIP(config.Services.carrierProviderHost)) {
+                                carrierProvider = format("http://{0}:{1}/DVP/API/{2}/PaymentManager/Customer/Wallet/Credit", config.ServicescarrierProviderHost, config.Services.carrierProviderPort, config.Services.carrierProviderVersion);
+
+                            }*/
+
+                            //var carrierProvider = "http://104.236.197.119:8080/carrierProvider/";
+                            var carrierProvider = config.Services.carrierProviderHost+"/carrierProvider/";
+
+                            request({
+                                method: "POST",
+                                url: carrierProvider,
+                                headers: {
+                                    Authorization: token,
+                                    companyinfo: "1:103",
+                                    "Content-Type" : "application/x-www-form-urlencoded"
+                                },
+                                json: {
+                                    "code": toCountryDigit,
+                                    "number": toNationSigNum
+                                }
+                            }, function (_error, _response, datax) {
 
 
-                            for (var index in ratingTable[i].PaymentData){
-                                //console.log(ratingTable[i].PaymentData[index].Country)
-                                if(ratingTable[i].Provider == provider && ratingTable[i].PaymentData[index].Country === 'LOCAL' ){
-                                    if(sameNetwork){
-                                        console.log('Same Network Per Miniute rate is: ' +ratingTable[i].PaymentData[index].SameNetworkPerMin);
-                                        callback(ratingTable[i].PaymentData[index].SameNetworkPerMin);
-                                        status = true;
-                                        break;
-                                    }
-                                    else if(toNumberType ==1){
-                                        console.log('Mobile Per Miniute rate is: ' +ratingTable[i].PaymentData[index].MobilePerMin);
-                                        callback(ratingTable[i].PaymentData[index].MobilePerMin);
-                                        status = true;
-                                        break;
 
-                                    }
-                                    else if(toNumberType ==0){
 
-                                        console.log('Land Per Miniute rate is: ' +ratingTable[i].PaymentData[index].LandlinePerMin);
-                                        callback(ratingTable[i].PaymentData[index].LandlinePerMin);
-                                        status = true;
-                                        break;
-                                    }
-                                    else{
-                                        console.log('Other Per Miniute rate is: ' +ratingTable[i].PaymentData[index].LandlinePerMin);
-                                        callback(ratingTable[i].PaymentData[index].LandlinePerMin);
-                                        status = true;
-                                        break;
+                                if(datax && datax.IsSuccess){
+                                    if(datax.Carrier.toUpperCase() === provider.toUpperCase()){
+                                        console.log(datax);
+                                        sameNetwork = true;
                                     }
 
                                 }
-                            }
+                                else if(datax && !datax.IsSuccess){
+                                    console.log(datax);
 
-                            if(i == ratingTable.length -1 && !status){
-                                callback(null)
-                            }
+                                }
+                                else{
+                                    //console.log(_error);
+                                }
+
+                                for(var i = 0; i<ratingTable.length; i++){
+
+
+                                    for (var index in ratingTable[i].PaymentData){
+                                        //console.log(ratingTable[i].PaymentData[index].Country)
+                                        if(ratingTable[i].Provider == provider && ratingTable[i].PaymentData[index].Country === 'LOCAL' ){
+                                            if(sameNetwork){
+                                                console.log('Same Network Per Miniute rate is: ' +ratingTable[i].PaymentData[index].SameNetworkPerMin);
+                                                callback(ratingTable[i].PaymentData[index].SameNetworkPerMin);
+                                                status = true;
+                                                break;
+                                            }
+                                            else if(toNumberType ==1){
+                                                console.log('Mobile Per Miniute rate is: ' +ratingTable[i].PaymentData[index].MobilePerMin);
+                                                callback(ratingTable[i].PaymentData[index].MobilePerMin);
+                                                status = true;
+                                                break;
+
+                                            }
+                                            else if(toNumberType ==0){
+
+                                                console.log('Land Per Miniute rate is: ' +ratingTable[i].PaymentData[index].LandlinePerMin);
+                                                callback(ratingTable[i].PaymentData[index].LandlinePerMin);
+                                                status = true;
+                                                break;
+                                            }
+                                            else{
+                                                console.log('Other Per Miniute rate is: ' +ratingTable[i].PaymentData[index].LandlinePerMin);
+                                                callback(ratingTable[i].PaymentData[index].LandlinePerMin);
+                                                status = true;
+                                                break;
+                                            }
+
+                                        }
+                                    }
+
+                                    if(i == ratingTable.length -1 && !status){
+                                        callback(null)
+                                    }
+
+                                }
+
+
+                            });
 
                         }
+                        catch (e){
+                            console.log(e)
+                        }
+
+
+
                     }
                     else {
                         //TOLLFREE
@@ -276,53 +333,96 @@ function getRating(to, from, provider, callback){
             console.log('This is a local call');
 
             var sameNetwork = false;
-            for (var index in networkDictionary[fromCountryCode][provider]){
-                var prefixStr = networkDictionary[fromCountryCode][provider][index];
-                var found = to.match(prefixStr);
-                if(found !=null){
-                    sameNetwork =true;
-                    break;
-                }
-            }
 
-            for(var i = 0; i<ratingTable.length; i++){
+            try{
 
+                /*var carrierProvider = format("http://{0}/DVP/API/{1}/PaymentManager/Customer/Wallet/Credit", config.Services.carrierProviderHost, config.Services.carrierProviderVersion);
 
-                for (var index in ratingTable[i].PaymentData){
-                    //console.log(ratingTable[i].PaymentData[index].Country)
-                    if(ratingTable[i].Provider == provider && ratingTable[i].PaymentData[index].Country === 'LOCAL' ){
-                        if(sameNetwork){
-                            console.log('Same Network Per Miniute rate is: ' +ratingTable[i].PaymentData[index].SameNetworkPerMin);
-                            callback(ratingTable[i].PaymentData[index].SameNetworkPerMin);
-                            status = true;
-                            break;
-                        }
-                        else if(toNumberType ==1){
-                            console.log('Mobile Per Miniute rate is: ' +ratingTable[i].PaymentData[index].MobilePerMin);
-                            callback(ratingTable[i].PaymentData[index].MobilePerMin);
-                            status = true;
-                            break;
+                 if (validator.isIP(config.Services.carrierProviderHost)) {
+                 carrierProvider = format("http://{0}:{1}/DVP/API/{2}/PaymentManager/Customer/Wallet/Credit", config.ServicescarrierProviderHost, config.Services.carrierProviderPort, config.Services.carrierProviderVersion);
 
-                        }
-                        else if(toNumberType ==0){
+                 }*/
 
-                            console.log('Land Per Miniute rate is: ' +ratingTable[i].PaymentData[index].LandlinePerMin);
-                            callback(ratingTable[i].PaymentData[index].LandlinePerMin);
-                            status = true;
-                            break;
-                        }
-                        else{
-                            console.log('Other Per Miniute rate is: ' +ratingTable[i].PaymentData[index].LandlinePerMin);
-                            callback(ratingTable[i].PaymentData[index].LandlinePerMin);
-                            status = true;
-                            break;
-                        }
+                //var carrierProvider = "http://104.236.197.119:8080/carrierProvider/";
+                var carrierProvider = config.Services.carrierProviderHost+"/carrierProvider/";
+
+                request({
+                    method: "POST",
+                    url: carrierProvider,
+                    headers: {
+                        Authorization: token,
+                        companyinfo: "1:103",
+                        "Content-Type" : "application/x-www-form-urlencoded"
+                    },
+                    json: {
+                        "code": toCountryDigit,
+                        "number": toNationSigNum
                     }
-                }
+                }, function (_error, _response, datax) {
 
-                if(i == ratingTable.length -1 && !status){
-                    callback(null)
-                }
+                    if(datax && datax.IsSuccess){
+                        if(datax.Carrier.toUpperCase() === provider.toUpperCase()){
+                            console.log(datax);
+                            sameNetwork = true;
+                        }
+
+                    }
+                    else if(datax && !datax.IsSuccess){
+                        console.log(datax);
+
+                    }
+                    else{
+                        //console.log(_error);
+                    }
+
+                    for(var i = 0; i<ratingTable.length; i++){
+
+
+                        for (var index in ratingTable[i].PaymentData){
+                            //console.log(ratingTable[i].PaymentData[index].Country)
+                            if(ratingTable[i].Provider == provider && ratingTable[i].PaymentData[index].Country === 'LOCAL' ){
+                                if(sameNetwork){
+                                    console.log('Same Network Per Miniute rate is: ' +ratingTable[i].PaymentData[index].SameNetworkPerMin);
+                                    callback(ratingTable[i].PaymentData[index].SameNetworkPerMin);
+                                    status = true;
+                                    break;
+                                }
+                                else if(toNumberType ==1){
+                                    console.log('Mobile Per Miniute rate is: ' +ratingTable[i].PaymentData[index].MobilePerMin);
+                                    callback(ratingTable[i].PaymentData[index].MobilePerMin);
+                                    status = true;
+                                    break;
+
+                                }
+                                else if(toNumberType ==0){
+
+                                    console.log('Land Per Miniute rate is: ' +ratingTable[i].PaymentData[index].LandlinePerMin);
+                                    callback(ratingTable[i].PaymentData[index].LandlinePerMin);
+                                    status = true;
+                                    break;
+                                }
+                                else{
+                                    console.log('Other Per Miniute rate is: ' +ratingTable[i].PaymentData[index].LandlinePerMin);
+                                    callback(ratingTable[i].PaymentData[index].LandlinePerMin);
+                                    status = true;
+                                    break;
+                                }
+
+                            }
+                        }
+
+                        if(i == ratingTable.length -1 && !status){
+                            callback(null)
+                        }
+
+                    }
+
+
+                });
+
+            }
+            catch (e){
+                console.log(e)
             }
         }
         else {

@@ -19,6 +19,9 @@ var relayHost = 'localhost';
 var relayPort = 3868;
 var relayIP = '127.0.0.1';
 
+
+var LockedCredit = [];
+
 var optionsAsTcpServer = {
     beforeAnyMessage: diameter.logMessage,
     afterAnyMessage: diameter.logMessage
@@ -26,9 +29,10 @@ var optionsAsTcpServer = {
 
 var server = diameter.createServer(optionsAsTcpServer, function(socket) {
 
-    socket.setKeepAlive(true,5000);
+    socket.setNoDelay(true);
 
     console.log("Client connected through TCP : " +  socket.remoteAddress +':'+ socket.remotePort);
+
 
     socket.on('diameterMessage', processDiameterMessages);
 
@@ -67,31 +71,133 @@ function processDiameterMessages(event,response) {
 
     if (event.message.command=='Credit-Control'){
 
-        //console.log('dsdsdsdsdsdsd');
-
         var avpObj = avp.toObject(event.message.body);
 
+        console.log(avpObj.ccRequestType ==='EVENT_REQUEST');
+        console.log(avpObj.requestedAction);
 
-        if(avpObj.ccRequestType ==='EVENT_BASED'){
+        if(avpObj.ccRequestType ==='EVENT_REQUEST'){
             switch (avpObj.requestedAction){
+
                 case 'PRICE_ENQUIRY':
-                    event.response.body = event.response.body.concat([
-                        ['Result-Code', 'DIAMETER_SUCCESS'],
-                        ['Origin-Host', serverHost],
-                        ['Origin-Realm', serverRealm],
-                        ['Auth-Application-Id', 'Diameter Credit Control'],
-                        ['CC-Request-Number', 0]
-                    ]);
+                    var data = avpObj.subscriptionId.subscriptionIdData;
+
+                    var req = {
+                        body :{},
+                        user :{}
+                    };
+
+                    var datapasred = JSON.parse(data);
+
+                    req.body.Amount = 0 ;
+                    req.user.iss = datapasred.user;
+                    req.body.Reason = 'Per minute Call billeng credit reservation'
+                    req.user.tenant = datapasred.tenant;
+                    req.user.company = datapasred.company;
+                    req.body.SessionId = datapasred.csid;
+                    ratings.getRating(datapasred.to,datapasred.from, datapasred.provider, function(rating){
+
+
+                        console.log(rating);
+                        if(rating == -2){
+                            event.response.body = event.response.body.concat([
+                                ['Result-Code', 'DIAMETER_UNABLE_TO_DELIVER'],
+                                ['Origin-Host', serverHost],
+                                ['Origin-Realm', serverRealm],
+                                ['Auth-Application-Id', 'Diameter Credit Control'],
+                                ['CC-Request-Number', 0]
+                            ]);
+                            event.callback(event.response);
+                        }
+                        else{
+                            req.body.Amount = rating *100;
+                            walletHandler.LockCreditFromCustomer(req, function(found){
+
+                                if(JSON.parse(found).IsSuccess){
+
+                                    var creditLock = {
+                                        csid : datapasred.csid,
+                                        amount : req.body.Amount
+                                    };
+
+                                    LockedCredit.push(creditLock);
+
+                                    event.response.body = event.response.body.concat([
+                                        ['Result-Code', 'DIAMETER_SUCCESS'],
+                                        ['Origin-Host', serverHost],
+                                        ['Origin-Realm', serverRealm],
+                                        ['Auth-Application-Id', 'Diameter Credit Control'],
+                                        ['CC-Request-Number', 0]
+                                    ]);
+                                    event.callback(event.response);
+                                }
+                                else {
+
+                                    console.log(found);
+                                    event.response.body = event.response.body.concat([
+                                        ['Result-Code', 'DIAMETER_RESOURCES_EXCEEDED'],
+                                        ['Origin-Host', serverHost],
+                                        ['Origin-Realm', serverRealm],
+                                        ['Auth-Application-Id', 'Diameter Credit Control'],
+                                        ['CC-Request-Number', 0]
+                                    ]);
+                                    event.callback(event.response);
+
+                                }
+
+                            })
+                        }
+
+
+                    });
                     break;
 
                 case 'CHECK_BALANCE':
-                    event.response.body = event.response.body.concat([
-                        ['Result-Code', 'DIAMETER_SUCCESS'],
-                        ['Origin-Host', serverHost],
-                        ['Origin-Realm', serverRealm],
-                        ['Auth-Application-Id', 'Diameter Credit Control'],
-                        ['CC-Request-Number', 0]
-                    ]);
+                    var data = {dsid : avpObj.sessionId, csid : JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid, userinfo : avpObj.subscriptionId.subscriptionIdData};
+                    //console.log(avpObj)
+
+                    /*var removeIndex = -1;
+                    for ( var index in LockedCredit){
+                        if(LockedCredit[index].csid ==  JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid){
+                            removeIndex = index;
+                            break;
+                        }
+
+                    }
+                    if (removeIndex != -1){
+                        console.log('Locked Credit Removed');
+                        LockedCredit.splice(removeIndex, 1);
+                    }*/
+
+                    scheduler.callBilling(data).initializeCall(data, function(found){
+                        //console.log(found);
+
+                        if(found && found.IsSuccess){
+                            event.response.body = event.response.body.concat([
+                                ['Result-Code', 'DIAMETER_SUCCESS'],
+                                ['Origin-Host', serverHost],
+                                ['Origin-Realm', serverRealm],
+                                ['Auth-Application-Id', 'Diameter Credit Control'],
+                                ['CC-Request-Number', 0]
+                            ]);
+                            event.callback(event.response);
+                        }
+                        else {
+
+                            console.log(found);
+                            event.response.body = event.response.body.concat([
+                                ['Result-Code', 'DIAMETER_RESOURCES_EXCEEDED'],
+                                ['Origin-Host', serverHost],
+                                ['Origin-Realm', serverRealm],
+                                ['Auth-Application-Id', 'Diameter Credit Control'],
+                                ['CC-Request-Number', 0]
+                            ]);
+                            event.callback(event.response);
+
+                        }
+                    });
+                    break;
+
                     break;
                 case 'DIRECT_DEBITING':
                     event.response.body = event.response.body.concat([
@@ -101,11 +207,63 @@ function processDiameterMessages(event,response) {
                         ['Auth-Application-Id', 'Diameter Credit Control'],
                         ['CC-Request-Number', 0]
                     ]);
+
+                    console.log(JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid);
+                    console.log(LockedCredit);
+                    var dataParsed =JSON.parse(avpObj.subscriptionId.subscriptionIdData);
+
+                    var request = {
+                        body :{},
+                        user :{}
+                    };
+
+
+
+
+                    var removeIndex = -1;
+                    for ( var index in LockedCredit){
+                        if(LockedCredit[index].csid == dataParsed.csid){
+
+                            request.body.Amount = LockedCredit[index].amount ;
+                            request.user.iss = dataParsed.user;
+                            request.body.Reason = 'Unused Locked Credit Released';
+                            request.user.tenant = dataParsed.tenant;
+                            request.user.company = dataParsed.company;
+                            request.body.SessionId = dataParsed.csid;
+
+                            walletHandler.ReleaseCreditFromCustomer(request, function(res){
+                                console.log('################################################################');
+                                if(JSON.parse(res).IsSuccess){
+                                    console.log('Unused Locked Credit Released');
+                                }
+                                console.log('################################################################');
+
+
+                            });
+                            removeIndex = index;
+                            break;
+                        }
+                    }
+                    if (removeIndex != -1){
+                        LockedCredit.splice(removeIndex, 1);
+                    }
+
+                    var data = {dsid : avpObj.sessionId, csid : JSON.parse(avpObj.subscriptionId.subscriptionIdData).csid};
+                    scheduler.callBilling(data).terminateCall(data, function(found){
+                        console.log(found)
+                    });
+
+                    event.callback(event.response);
                     break;
 
 
                 default:
-                    console.log('Invalid CCR recived')
+                    console.log('Invalid CCR recived');
+                    event.callback(event.response);
+                    break;
+
+
+
 
             }
         }

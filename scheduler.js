@@ -582,12 +582,15 @@ function callBilling(data){
 
             }
 
+            //Validate if call session exists
+            callSessionValidator.getCallSession(JSON.parse(data.userinfo).csid, function (error, obj){
+                if(obj){
 
-            //callSessionValidator.getCallSession(JSON.parse(data.userinfo).csid, function (error, obj){
-                //if(obj){
 
                     var dataParsed = JSON.parse(data.userinfo);
                     var amount = 100;
+
+                    //Get Rating for call per miniute
                     rating.getRating(dataParsed.to, dataParsed.from, dataParsed.provider, function(res){
                         console.log(res);
                         if(res!=null){
@@ -602,7 +605,7 @@ function callBilling(data){
                         console.log({"Amount":amount , "Reason": "Call Billing to : "});
 
                         if(amount != -1){
-                            console.log('00000000000000000000000000000000000000000000000000000');
+                            console.log('************************************************************');
 
                             var req = {
                                 body :{},
@@ -616,26 +619,93 @@ function callBilling(data){
                             req.user.tenant = dataParsed.tenant;
                             req.user.company = dataParsed.company;
                             req.body.SessionId = dataParsed.csid;
-                            walletHandler.ReleaseCreditFromCustomer(req, function(res){
+                            //walletHandler.ReleaseCreditFromCustomer(req, function(res){
 
-                                if(JSON.parse(res).IsSuccess){
+                            //if(JSON.parse(res).IsSuccess){
 
-                                    console.log(walletURL)
-                                    request({
-                                        method: "PUT",
-                                        url: walletURL,
-                                        headers: {
-                                            Authorization: token,
-                                            companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
-                                        },
-                                        json: {"Amount":amount , "Reason": "Call Billing to : "}
-                                    }, function (_error, _response, datax) {
+                            //console.log(walletURL)
+                            request({
+                                method: "PUT",
+                                url: walletURL,
+                                headers: {
+                                    Authorization: token,
+                                    companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
+                                },
+                                json: {"Amount":amount , "Reason": "Call Billing to : "}
+                            }, function (_error, _response, datax) {
 
-                                        if(datax && datax.IsSuccess){
+                                if(datax && datax.IsSuccess){
+                                    console.log(datax);
+                                    callback(datax);
+                                }
+                                else if(datax && !datax.IsSuccess){
+
+                                    walletHandler.ReleaseCreditFromCustomer(req, function(res) {
+
+                                        if (JSON.parse(res).IsSuccess) {
+
                                             console.log(datax);
-                                            callback(datax);
+                                            console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');
+
+                                            console.log(JSON.parse(data.userinfo).csid);
+                                            console.log('Final Miniute Billing');
+
+                                            console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');
+
+                                            request({
+                                                method: "PUT",
+                                                url: walletURL,
+                                                headers: {
+                                                    Authorization: token,
+                                                    companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
+                                                },
+                                                json: {"Amount":amount , "Reason": "Call Billing to : " }
+                                            }, function (_error, _response, datax) {
+                                                //console.log(datax);
+                                                if(datax && datax.IsSuccess){
+                                                    console.log(JSON.parse(data.userinfo).csid);
+                                                    console.log(datax);
+                                                }
+                                                else{
+
+                                                    var monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiVersion);
+                                                    if (validator.isIP(config.Services.walletServiceHost)) {
+                                                        monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiPort, config.Services.monitorRestApiVersion);
+
+                                                    }
+
+                                                    request({
+                                                        method: "POST",
+                                                        url: monitorRestApiUrl,
+                                                        headers: {
+                                                            Authorization: token,
+                                                            companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
+                                                        }
+                                                    }, function (_error, _response, datax) {
+                                                        //console.log(datax);
+                                                        if(datax && datax.IsSuccess){
+
+                                                            var res = {IsSuccess : false};
+                                                            callback(res);
+                                                            console.log(datax);
+                                                        }
+                                                        else{
+                                                            var res = {IsSuccess : false};
+                                                            callback(res);
+                                                            console.log(_error);
+                                                        }
+
+                                                    });
+                                                    console.log(_error);
+
+                                                }
+
+
+
+                                            });
+
                                         }
-                                        else if(datax && !datax.IsSuccess){
+                                        else{
 
                                             console.log(datax);
                                             var monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiVersion);
@@ -668,23 +738,30 @@ function callBilling(data){
                                             });
 
                                         }
-                                        else{
-                                            console.log(_error);
-                                            callback(_error);
-                                        }
-
-
                                     });
+
 
                                 }
                                 else{
-                                    var res = {IsSuccess : false};
-                                    callback(res);
+                                    console.log(_error);
+                                    callback(_error);
                                 }
 
 
                             });
 
+                            //}
+                            //else{
+                            //    var res = {IsSuccess : false};
+                            //    callback(res);
+                            //}
+
+
+                            //});
+
+                            console.log('******************************************************');
+                            console.log('Starting Billing Counter');
+                            console.log('******************************************************');
 
 
                             var j = schedule.scheduleJob(rule, function(){
@@ -698,6 +775,7 @@ function callBilling(data){
 
                                         }
 
+
                                         request({
                                             method: "PUT",
                                             url: walletURL,
@@ -709,40 +787,111 @@ function callBilling(data){
                                         }, function (_error, _response, datax) {
                                             //console.log(datax);
                                             if(datax && datax.IsSuccess){
+                                                console.log(JSON.parse(data.userinfo).csid)
                                                 console.log(datax);
                                             }
                                             else{
 
-                                                var monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiVersion);
-                                                if (validator.isIP(config.Services.walletServiceHost)) {
-                                                    monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiPort, config.Services.monitorRestApiVersion);
+                                                walletHandler.ReleaseCreditFromCustomer(req, function(res){
 
-                                                }
+                                                    if(JSON.parse(res).IsSuccess){
+                                                        console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');
 
-                                                request({
-                                                    method: "POST",
-                                                    url: monitorRestApiUrl,
-                                                    headers: {
-                                                        Authorization: token,
-                                                        companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
-                                                    }
-                                                }, function (_error, _response, datax) {
-                                                    //console.log(datax);
-                                                    if(datax && datax.IsSuccess){
+                                                        console.log(JSON.parse(data.userinfo).csid);
+                                                        console.log('Final Miniute Billing');
 
-                                                        var res = {IsSuccess : false};
-                                                        callback(res);
-                                                        console.log(datax);
+                                                        console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$');
+
+                                                        request({
+                                                            method: "PUT",
+                                                            url: walletURL,
+                                                            headers: {
+                                                                Authorization: token,
+                                                                companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
+                                                            },
+                                                            json: {"Amount":amount , "Reason": "Call Billing to : " }
+                                                        }, function (_error, _response, datax) {
+                                                            //console.log(datax);
+                                                            if(datax && datax.IsSuccess){
+                                                                console.log(JSON.parse(data.userinfo).csid);
+                                                                console.log(datax);
+                                                            }
+                                                            else{
+
+                                                                var monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiVersion);
+                                                                if (validator.isIP(config.Services.walletServiceHost)) {
+                                                                    monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiPort, config.Services.monitorRestApiVersion);
+
+                                                                }
+
+                                                                request({
+                                                                    method: "POST",
+                                                                    url: monitorRestApiUrl,
+                                                                    headers: {
+                                                                        Authorization: token,
+                                                                        companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
+                                                                    }
+                                                                }, function (_error, _response, datax) {
+                                                                    //console.log(datax);
+                                                                    if(datax && datax.IsSuccess){
+
+                                                                        var res = {IsSuccess : false};
+                                                                        callback(res);
+                                                                        console.log(datax);
+                                                                    }
+                                                                    else{
+                                                                        var res = {IsSuccess : false};
+                                                                        callback(res);
+                                                                        console.log(_error);
+                                                                    }
+
+                                                                });
+                                                                console.log(_error);
+                                                                j.cancel();
+
+                                                            }
+
+
+
+                                                        });
+
+
+
                                                     }
                                                     else{
-                                                        var res = {IsSuccess : false};
-                                                        callback(res);
+                                                        var monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiVersion);
+                                                        if (validator.isIP(config.Services.walletServiceHost)) {
+                                                            monitorRestApiUrl = format('http://{0}/DVP/API/{1}/MonitorRestAPI/Dispatch/'+JSON.parse(data.userinfo).csid+'/disconnect', config.Services.monitorRestApiHost, config.Services.monitorRestApiPort, config.Services.monitorRestApiVersion);
+
+                                                        }
+
+                                                        request({
+                                                            method: "POST",
+                                                            url: monitorRestApiUrl,
+                                                            headers: {
+                                                                Authorization: token,
+                                                                companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
+                                                            }
+                                                        }, function (_error, _response, datax) {
+                                                            //console.log(datax);
+                                                            if(datax && datax.IsSuccess){
+
+                                                                var res = {IsSuccess : false};
+                                                                callback(res);
+                                                                console.log(datax);
+                                                            }
+                                                            else{
+                                                                var res = {IsSuccess : false};
+                                                                callback(res);
+                                                                console.log(_error);
+                                                            }
+
+                                                        });
                                                         console.log(_error);
+                                                        j.cancel();
                                                     }
 
                                                 });
-                                                console.log(_error);
-                                                j.cancel();
                                             }
 
 
@@ -774,18 +923,19 @@ function callBilling(data){
 
 
 
-                //}
-                //else if(error){
-                //    var errresp = {IsSuccess : false, error : error};
-                //    callback(errresp);
-                //}
-            //});
+                }
+                else if(error){
+                    var errresp = {IsSuccess : false, error : error};
+                    callback(errresp);
+                }
+            });
 
 
         },
         terminateCall : function (data, callback){
             console.log('Call Ended');
             var removeIndex = -1;
+            //console.log(calls)
             for ( var index in calls){
                 if(calls[index].callSessionId == data.csid){
                     removeIndex = index;
