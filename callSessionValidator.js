@@ -52,12 +52,12 @@ if(redismode == 'sentinel'){
     }
 }
 
-if(redismode != "cluster")
-{
-    redisClient = new redis(redisSetting);
+var client = undefined;
+
+if(redismode != "cluster"){
+    client = new redis(redisSetting);
 }
-else
-{
+else{
 
     var redisHosts = redisip.split(",");
     if(Array.isArray(redisHosts))
@@ -71,30 +71,31 @@ else
                 password: redispass});
         });
 
-        redisClient = new redis.Cluster([redisSetting]);
+        client = new redis.Cluster([redisSetting]);
 
     }
     else
     {
-        redisClient = new redis(redisSetting);
+        client = new redis(redisSetting);
     }
 }
 
 
-redisClient.on('error', function(msg){
+client.on('error', function(msg){
 
 });
 
 
 
-
 var getCallSession = function(sessionId, callback)
 {
+
+    console.log(client.status)
     try
     {
-        if(redisClient.connected)
+        if(client.status==='ready')
         {
-            redisClient.hgetall(sessionId, function (err, hashObj)
+            client.hgetall(sessionId, function (err, hashObj)
             {
                 callback(err, hashObj);
             });
@@ -111,7 +112,7 @@ var getCallSession = function(sessionId, callback)
 };
 
 
-redisClient.on('error', function(msg)
+client.on('error', function(msg)
 {
 
 });
