@@ -7,24 +7,94 @@ var logger = require('dvp-common/LogHandler/CommonLogHandler.js').logger;
 var DbConn = require('dvp-dbmodels');
 var moment = require('moment');
 var Sequelize = require('sequelize');
-var redis = require('redis');
+var redis = require('ioredis');
 var async = require("async");
 var config = require('config');
 //var directPayment = require('../Stripe/DirectPayment');
 var Q = require('q');
 
-var client = redis.createClient(config.Redis.port, config.Redis.ip);
-client.auth(config.Redis.password);
-client.select(config.Redis.redisdb, redis.print);
-//client.select(config.Redis.redisdb, function () {});
-client.on("error", function (err) {
-    logger.error('error', 'Redis connection error :: %s', err);
-    console.log("Error " + err);
+var redisip = config.Redis.ip;
+var redisport = config.Redis.port;
+var redispass = config.Redis.password;
+var redismode = config.Redis.mode;
+
+var redisSetting =  {
+    port:redisport,
+    host:redisip,
+    family: 4,
+    db: 0,
+    password: redispass,
+    retryStrategy: function (times) {
+        return Math.min(times * 50, 2000);
+    },
+    reconnectOnError: function (err) {
+
+        return true;
+    }
+};
+
+if(redismode == 'sentinel'){
+
+    if(config.Redis.sentinels && config.Redis.sentinels.hosts && config.Redis.sentinels.port && config.Redis.sentinels.name){
+        var sentinelHosts = config.Redis.sentinels.hosts.split(',');
+        if(Array.isArray(sentinelHosts) && sentinelHosts.length > 2){
+            var sentinelConnections = [];
+
+            sentinelHosts.forEach(function(item){
+
+                sentinelConnections.push({host: item, port:config.Redis.sentinels.port})
+
+            });
+
+            redisSetting = {
+                sentinels:sentinelConnections,
+                name: config.Redis.sentinels.name,
+                password: redispass
+            }
+
+        }else{
+
+            console.log("No enough sentinel servers found - DASHBOARD REDIS");
+        }
+
+    }
+}
+
+if(redismode != "cluster")
+{
+    client = new redis(redisSetting);
+}
+else
+{
+
+    var redisHosts = redisip.split(",");
+    if(Array.isArray(redisHosts))
+    {
+        redisSetting = [];
+        redisHosts.forEach(function(item){
+            redisSetting.push({
+                host: item,
+                port: redisport,
+                family: 4,
+                password: redispass});
+        });
+
+        client = new redis.Cluster([redisSetting]);
+
+    }
+    else
+    {
+        client = new redis(redisSetting);
+    }
+}
+
+
+client.on('error', function(msg){
+
 });
 
-client.on("connect", function (err) {
-    client.select(config.Redis.redisdb, redis.print);
-});
+
+
 var lock = require("redis-lock")(client);
 var ttl = config.Redis.ttl;
 

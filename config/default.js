@@ -12,13 +12,22 @@ module.exports = {
     },
 
 
-    "Redis": {
-        "ip": "45.55.142.207",
-        "port": 6389,
-        "password":"DuoS123",
-        "redisdb":0,
-        "ttl":30000
-    },
+    "Redis":
+        {
+            "mode":"sentinel",//instance, cluster, sentinel
+            "ip": "45.55.142.207",
+            "port": 6389,
+            "user": "duo",
+            "password": "DuoS123",
+            "db": 0,
+            "ttl":30000,
+            "sentinels":{
+                "hosts": "138.197.90.92,45.55.205.92,162.243.81.39",
+                "port":16389,
+                "name":"redis-cluster"
+            }
+
+        },
 
 
     "Security":
@@ -38,7 +47,7 @@ module.exports = {
         "port": "5555",
         "version": "1.0.0.0",
         "reschedulefreqency": "1",
-        "rescheduletries": "3",
+        "rescheduletries": "3"
 
     },
 
