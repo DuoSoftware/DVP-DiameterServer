@@ -53,6 +53,9 @@ function getRating(to, from, provider, callback){
 
     var numbererror = false;
 
+
+    //console.log(ratingTable)
+
     try{
         var toNumberType = libphonenumber.phoneUtil.getNumberType(libphonenumber.phoneUtil.parseAndKeepRawInput(to, null));
         var fromNumberType = libphonenumber.phoneUtil.getNumberType(libphonenumber.phoneUtil.parseAndKeepRawInput(from, null));
@@ -246,11 +249,18 @@ function getRating(to, from, provider, callback){
 
                             console.log('This is an Outbound IDD call');
 
+
+
                             for(var i = 0; i<ratingTable.length; i++){
 
                                 for (var index in ratingTable[i].PaymentData){
-                                    //console.log(ratingTable[i].PaymentData[index].Country)
-                                    if(ratingTable[i].Provider == provider && ratingTable[i].PaymentData.Country === toCountryCode ){
+
+
+                                    if(ratingTable[i].Provider == provider && ratingTable[i].PaymentData[index].Country === toCountryCode ){
+
+
+
+
                                         if(toNumberType ==1){
                                             console.log('Mobile Per Miniute rate is: ' +ratingTable[i].PaymentData[index].MobilePerMin);
                                             callback(ratingTable[i].PaymentData[index].MobilePerMin);
@@ -476,7 +486,7 @@ function getRating(to, from, provider, callback){
 
                     for (var index in ratingTable[i].PaymentData){
                         //console.log(ratingTable[i].PaymentData[index].Country)
-                        if(ratingTable[i].Provider == provider && ratingTable[i].PaymentData.Country === toCountryCode ){
+                        if(ratingTable[i].Provider == provider && ratingTable[i].PaymentData[index].Country === toCountryCode ){
                             if(toNumberType ==1){
                                 console.log('Mobile Per Miniute rate is: ' +ratingTable[i].PaymentData[index].MobilePerMin);
                                 callback(ratingTable[i].PaymentData[index].MobilePerMin);
@@ -513,6 +523,8 @@ function getRating(to, from, provider, callback){
 
 
 }
+
+
 
 
 
