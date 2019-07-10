@@ -92,17 +92,10 @@ var getCallSession = function(sessionId, callback)
 {
     try
     {
-        if(redisClient.connected)
+        redisClient.hgetall(sessionId, function (err, hashObj)
         {
-            redisClient.hgetall(sessionId, function (err, hashObj)
-            {
-                callback(err, hashObj);
-            });
-        }
-        else
-        {
-            callback(new Error('Redis Client Disconnected'), null);
-        }
+            callback(err, hashObj);
+        });
     }
     catch(ex)
     {

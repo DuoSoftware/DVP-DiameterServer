@@ -615,7 +615,7 @@ function callBilling(data){
 
                             req.body.Amount = amount ;
                             req.user.iss = dataParsed.user;
-                            req.body.Reason = 'Per minute Call billeng credit reservation';
+                            req.body.Reason = 'Per minute call billing credit reservation';
                             req.user.tenant = dataParsed.tenant;
                             req.user.company = dataParsed.company;
                             req.body.SessionId = dataParsed.csid;

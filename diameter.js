@@ -91,7 +91,7 @@ function processDiameterMessages(event,response) {
 
                     req.body.Amount = 0 ;
                     req.user.iss = datapasred.user;
-                    req.body.Reason = 'Per minute Call billeng credit reservation'
+                    req.body.Reason = 'Per minute call billing credit reservation'
                     req.user.tenant = datapasred.tenant;
                     req.user.company = datapasred.company;
                     req.body.SessionId = datapasred.csid;
@@ -298,7 +298,7 @@ function processDiameterMessages(event,response) {
 
                     req.body.Amount = 0 ;
                     req.user.iss = datapasred.user;
-                    req.body.Reason = 'Per minute Call billeng credit reservation'
+                    req.body.Reason = 'Per minute call billing credit reservation'
                     req.user.tenant = datapasred.tenant;
                     req.user.company = datapasred.company;
                     req.body.SessionId = datapasred.csid;
