@@ -631,7 +631,7 @@ function callBilling(data){
                                     Authorization: token,
                                     companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
                                 },
-                                json: {"Amount":amount , "Reason": "Call Billing to : ", "TxnType": "Calls" }
+                                json: {"Amount":amount , "Reason": "Call Billing to : " + dataParsed.to, "TxnType": "Calls" }
                             }, function (_error, _response, datax) {
 
                                 if(datax && datax.IsSuccess){
@@ -659,7 +659,7 @@ function callBilling(data){
                                                     Authorization: token,
                                                     companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
                                                 },
-                                                json: {"Amount":amount , "Reason": "Call Billing to : ", "TxnType": "Calls" }
+                                                json: {"Amount":amount , "Reason": "Call Billing to : " + dataParsed.to, "TxnType": "Calls" }
                                             }, function (_error, _response, datax) {
                                                 //console.log(datax);
                                                 if(datax && datax.IsSuccess){
@@ -783,7 +783,7 @@ function callBilling(data){
                                                 Authorization: token,
                                                 companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
                                             },
-                                            json: {"Amount":amount , "Reason": "Call Billing to : ", "TxnType": "Calls" }
+                                            json: {"Amount":amount , "Reason": "Call Billing to : " + dataParsed.to, "TxnType": "Calls" }
                                         }, function (_error, _response, datax) {
                                             //console.log(datax);
                                             if(datax && datax.IsSuccess){
@@ -809,7 +809,7 @@ function callBilling(data){
                                                                 Authorization: token,
                                                                 companyinfo: format("{0}:{1}", JSON.parse(data.userinfo).tenant, JSON.parse(data.userinfo).company)
                                                             },
-                                                            json: {"Amount":amount , "Reason": "Call Billing to : ", "TxnType": "Calls" }
+                                                            json: {"Amount":amount , "Reason": "Call Billing to : " + dataParsed.to, "TxnType": "Calls" }
                                                         }, function (_error, _response, datax) {
                                                             //console.log(datax);
                                                             if(datax && datax.IsSuccess){
