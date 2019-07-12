@@ -1129,7 +1129,8 @@ var addHistory = function (data) {
                 WalletId: data.WalletId,
                 Operation: data.Operation,
                 InvokeBy: data.InvokeBy,
-                Reason: data.Reason
+                Reason: data.Reason,
+                TxnType: data.TxnType
             }
         ).then(function (cmp) {
         var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
@@ -1193,7 +1194,7 @@ module.exports.getWalletHistory = function (req, res) {
 
 };
 
-var LockCredit = function (sessionId,amount, invokeBy, reason, tenant, company) {
+var LockCredit = function (sessionId,amount, invokeBy, reason, txnType, tenant, company) {
 
     var deferred = Q.defer();
     DbConn.Wallet.find({
@@ -1245,7 +1246,8 @@ var LockCredit = function (sessionId,amount, invokeBy, reason, tenant, company) 
                             WalletId: cmp.WalletId,
                             Operation: 'DeductCredit',
                             InvokeBy: invokeBy,
-                            Reason: reason ? reason : "Credit Locked By System"
+                            Reason: reason ? reason : "Credit Locked By System",
+                            TxnType: txnType
                         };
                         addHistory(data);
                     }).error(function (error) {
@@ -1270,7 +1272,7 @@ var LockCredit = function (sessionId,amount, invokeBy, reason, tenant, company) 
 
 };
 
-var ReleaseCredit = function (sessionId,amount,invokeBy, reason, tenant, company) {
+var ReleaseCredit = function (sessionId,amount,invokeBy, reason, txnType, tenant, company) {
 
     var deferred = Q.defer();
     DbConn.Wallet.find({
@@ -1320,7 +1322,8 @@ var ReleaseCredit = function (sessionId,amount,invokeBy, reason, tenant, company
                         WalletId: cmp.WalletId,
                         Operation: 'DeductCredit',
                         InvokeBy: invokeBy,
-                        Reason: reason ? reason : "Credit Released By System"
+                        Reason: reason ? reason : "Credit Released By System",
+                        TxnType: txnType
                     };
                     addHistory(data);
                 }).error(function (error) {
@@ -1347,7 +1350,7 @@ module.exports.LockCreditFromCustomer = function (req, res) {
         res(jsonString);
     }
     else{
-        LockCredit(req.body.SessionId,req.body.Amount, req.user.iss, req.body.Reason, req.user.tenant, req.user.company).then(function (cmp) {
+        LockCredit(req.body.SessionId,req.body.Amount, req.user.iss, req.body.Reason, req.body.txnType, req.user.tenant, req.user.company).then(function (cmp) {
             var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
             logger.info('LockCreditFromCustomer - [%s] .', jsonString);
             res(jsonString);
@@ -1367,7 +1370,7 @@ module.exports.ReleaseCreditFromCustomer = function (req, res) {
         res(jsonString);
     }
     else{
-        ReleaseCredit(req.body.SessionId,req.body.Amount,req.user.iss, req.body.Reason, req.user.tenant, req.user.company).then(function (cmp) {
+        ReleaseCredit(req.body.SessionId,req.body.Amount,req.user.iss, req.body.Reason, req.body.txnType, req.user.tenant, req.user.company).then(function (cmp) {
             var jsonString = messageFormatter.FormatMessage(undefined, "EXCEPTION", true, cmp);
             logger.info('ReleaseCredit - [%s] .', jsonString);
             res(jsonString);

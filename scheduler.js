@@ -219,7 +219,7 @@ function billEach(datax){
                             Authorization: token,
                             companyinfo: format("{0}:{1}", relTenant , relCompany)
                         },
-                        json: {"Amount": amount, "Reason": "Billing for the month"}
+                        json: {"Amount": amount, "Reason": "Billing for the month", "TxnType": "Credits" }
                     }, function (_error, _response, datax) {
                         //console.log(email);
                         if (datax && datax.IsSuccess) {
@@ -458,7 +458,7 @@ function recurrenceSchedulePayment(data){
                     Authorization: token,
                     companyinfo: format("{0}:{1}", relTenant, relCompany)
                 },
-                json: {"Amount":amount, "Reason": "Billing for the month"}
+                json: {"Amount":amount, "Reason": "Billing for the month", "TxnType": "Credits"}
             }, function (_error, _response, datax) {
                 //console.log(datax);
                 if(datax.IsSuccess){
