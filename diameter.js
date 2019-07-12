@@ -92,7 +92,7 @@ function processDiameterMessages(event,response) {
                     req.body.Amount = 0 ;
                     req.user.iss = datapasred.user;
                     req.body.Reason = 'Per minute call billing credit reservation';
-                    req.body.txnType = 'Calls';
+                    req.body.txnType = 'calls';
                     req.user.tenant = datapasred.tenant;
                     req.user.company = datapasred.company;
                     req.body.SessionId = datapasred.csid;
@@ -228,7 +228,7 @@ function processDiameterMessages(event,response) {
                             request.body.Amount = LockedCredit[index].amount ;
                             request.user.iss = dataParsed.user;
                             request.body.Reason = 'Unused Locked Credit Released';
-                            request.body.txnType = 'Calls';
+                            request.body.txnType = 'calls';
                             request.user.tenant = dataParsed.tenant;
                             request.user.company = dataParsed.company;
                             request.body.SessionId = dataParsed.csid;
